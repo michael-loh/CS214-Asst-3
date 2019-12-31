@@ -1,0 +1,52 @@
+
+CS214 Systems Programming
+Karen Lee - kwl47 - Section 07
+Michael Loh - ml1328 - Section 03
+
+Test Plan for asst3 - DUMB
+
+Note: An error in the protocol was discovered. In the original protocol, the client could attempt to open multiple boxes, and then be unable to specify which to put/get messages from. To rectify this issue, this implementation added an extra error message (ER:GREED) to stop the user from opening multiple boxes at once.
+
+These are the tests we did for each command:
+
+E.0: HELLO
+	- With correct response: Client continued operation
+	- With incorrect response: Client reports error and shuts down
+
+E.1 GDBYE
+	- With no response: Client reports success and shuts down
+	- With response: Client reports error and continues operation
+	
+E.2 CREAT arg0
+	- CREAT abcde: Successfully creates box abcde
+	- CREAT abcd/CREAT abcdefghijklmnopqrstuvwxyz/CREAT 1abcd: Client rejects box name. Server sends back ER:WHAT?
+	- CREAT abcde, CREAT abcde: Server rejects duplicate box creation.
+	- CREAT abcde, CREAT fghij: Server allows creation of multiple boxes.
+	- CREAT abcde, DELBX abcde, CREAT abcde: Server allows creation of a box with the same name as a previous box, as long as the previous box was deleted and does not currently exist.
+	- Two clients trying to create at the same time: One is blocked until the other finishes
+	
+E.3 OPNBX arg0
+	- CREAT abcde, OPNBX abcde: Successfully opens a box that exists
+	- CREAT abcde, CREAT fghij, OPNBX abcde, OPNBX abcde/OPNBX fghij: Don't allow a client to open more than one box (same or different) without closing it first
+	- OPNBX abcde: Report error when a client tries to open a nonexistent box
+	- Two clients trying to open the same box: One is rejected 
+	- Opening a box created by another client
+	
+E.4 NXTMG
+	- NXTMG: Fails when there is no box open
+	- OPNBX abcde, NXTMG: Reports an error when the box is empty
+	- OPNBX abcde, PUTMG!1!a, NXTMG: Successfully returns a message
+	- OPNBX abcde, PUTMG!1!a, NXTMG, NXTMG: Returns a message and then detects when there are none left
+	- OPNBX abcde, PUTMG!1!a, PUTMG!1!b, NXTMG, NXTMG: Retrieves messages in queue order
+	- Reading messages put in a box from another client
+	
+E.5 PUTMG!arg0!msg
+	- PUTMG!1!a: Fails when there is no box open
+	- OPNBX abcde, PUTMG!1!a, PUTMG!1!b, NXTMG, PUTMG!1!c, NXTMG, NXTMG: Puts messages in queue order
+	
+E.6 DELBX arg0
+	- CREAT abcde, DELBX abcde: Can successfully delete 
+	- DELBX abcde: Rejects deletion of a nonexistent box
+	- Two clients trying to delete at the same time: One is blocked until the other finishes
+	
+All commands were also tested with incorrect formatting - botched parameters, no parameters, too many parameters (for those that don't require parameters, and incorrect delimiters.
